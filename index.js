@@ -16,10 +16,10 @@ app.get('/register', (req, res) => {
     let username = req.body.username;
     let password = req.body.password;
     client.query(`INSERT INTO public.User(username, password) VALUES (${username}, ${password})`, (err, query_res) => {
-
+        res.status(200);
+        res.json({"username": username, "password": password});
     });
-    console.log("health request");
-    res.send("a");
+    console.log(`register request user=${username} password=${password}`);
 })
 
 app.get('/test', (req, res) => {
