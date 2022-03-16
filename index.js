@@ -5,7 +5,9 @@ const PORT = process.env.PORT || 5000;
 
 const client = new Client({
     connectionString: process.env.DB_URL || require('./local_keys/connection_key.json')["connectionString"],
-    ssl: false,
+    ssl: {
+      rejectUnauthorized: false
+    }
 });
 client.connect();
 
@@ -23,7 +25,7 @@ app.get('/register', (req, res) => {
 })
 
 app.get('/test', (req, res) => {
-    console.log(req);
+    console.log(req.body);
     res.send("AAAAAAA");
 })
 
