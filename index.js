@@ -70,6 +70,109 @@ app.post('/login', (req, res) => {
     console.log(`login request user=${username} password=${password}`);
 });
 
+app.post('/reservations', (req, res) => {
+    let user_id  = req.body.user_id ;
+    let hotel_id  = req.body.hotel_id ;
+    let date_from  = req.body.date_from;
+    let date_to   = req.body.date_to;
+    client.query(`INSERT INTO "Reservation" (user_id, hotel_id, reserved_from, reserved_to, review_id) VALUES ('${user_id}', '${hotel_id}', '${date_from}', '${date_to}', NULL) RETURNING id;`, (err, query_res) => {
+        if (err) {
+            res.status(401);
+            res.json({"error": err});
+        }
+        else {
+            res.status(200);
+            res.json({"reservation_id": query_res.rows[0].id});
+        }
+    });
+});
+
+app.get('/reservations', (req, res) => {
+    let user_id  = req.body.user_id ;
+    client.query(`SELECT * FROM "Reservation" WHERE "Reservation".user_id = ${user_id}`, (err, query_res) => {
+        if (err) {
+            res.status(404);
+            res.json({"error": err});
+        }
+        else {
+            res.status(200);
+            res.json({"list": query_res.rows});
+        }
+    });
+});
+
+app.get('/hotels', (req, res) => {
+    client.query(`SELECT * FROM "Hotel"`, (err, query_res) => {
+        if (err) {
+            res.status(404);
+            res.json({"error": err});
+        }
+        else {
+            res.status(200);
+            res.json({"list": query_res.rows});
+        }
+    });
+});
+
+app.get('/review/:id', (req, res) => {
+    var review_id = parseInt(req.params.id);
+    client.query(`SELECT * FROM "Reviews" WHERE "Reviews".id = ${review_id}`, (err, query_res) => {
+        if (err) {
+            res.status(404);
+            res.json({"error": err});
+        }
+        else if (query_res.rows[0]){
+            res.status(200);
+            res.json(query_res.rows[0]);
+        } else {
+            res.status(404);
+            res.json({"error": "No review found"});
+        }
+    });
+});
+
+app.delete('/review/:id', (req, res) => {
+    var review_id = parseInt(req.params.id);
+    client.query(`DELETE FROM "Reviews" WHERE "Reviews".id = ${review_id} RETURNING id`, (err, query_res) => {
+        if (err) {
+            res.status(404);
+            res.json({"error": err});
+        }
+        else if (query_res.rows[0]){
+            res.status(200);
+            res.json({"review_id":query_res.rows[0].id});
+        } else {
+            res.status(404);
+            res.json({"error": "No review found"});
+        }
+    });
+});
+
+
+app.get('/hotel/:id', (req, res) => {
+	var hotel_id = parseInt(req.params.id);
+    client.query(`SELECT * FROM "Hotel" WHERE "Hotel".id = ${hotel_id}`, (err, query_res) => {
+        if (err) {
+            res.status(404);
+            res.json({"error": err});
+        }
+        else {
+            client.query(`SELECT * FROM "Reviews" WHERE "Reviews".hotel_id = ${hotel_id}`, (err_review, query_res_review) => {
+                if (err_review) {
+                    res.status(404);
+                    res.json({"error": err_review});
+                }
+                else {
+                    res.status(200);
+                    query_res.rows[0]['reviews'] = query_res_review.rows;
+                    res.json(query_res.rows[0]);
+                }
+            });
+        }
+    });
+
+});
+
 app.post('/review', (req, res) => {
     let reservation_id = req.body.reservation_id;
     let stars = req.body.stars;
@@ -80,7 +183,7 @@ app.post('/review', (req, res) => {
             res.status(500);
             res.json({"error": err});
         }
-        else {
+        else if (query_res.rows[0]){
             let user_id = query_res.rows[0].user_id;
             let hotel_id = query_res.rows[0].hotel_id;
             client.query(`SELECT username FROM "Users" WHERE "Users".id = ${user_id}`, (err_user, query_res_user) => {
@@ -88,26 +191,79 @@ app.post('/review', (req, res) => {
                     res.status(500);
                     res.json({"error": err_user});
                 }
-                else {
+                else if (query_res_user.rows[0]){
                     let username = query_res_user.rows[0].username;
-                    client.query(`INSERT INTO "Reviews" (reservation_id, text, stars, username) VALUES ('${username}', '${password}')`, (err_review, query_res_review) => {
+                    client.query(`INSERT INTO "Reviews" (user_id, hotel_id, text, stars, username) VALUES ('${user_id}', '${hotel_id}', '${text}', '${stars}', '${username}') RETURNING id`, (err_review, query_res_review) => {
                         if (err_review) {
                             res.status(401);
                             res.json({"error": err_review});
                         }
                         else {
-                            res.status(200);
-                            res.send("OK");
+                            console.log(`review inserted with text=${text} stars=${stars}`);
+                            client.query(`UPDATE "Reservation" SET review_id='${query_res_review.rows[0].id}' WHERE "Reservation".id = ${reservation_id}`, (err_reserv, query_res_reserv) => {
+                                if (err_reserv) {
+                                    res.status(401);
+                                    res.json({"error": err_reserv});
+                                }
+                                else{
+                                    res.status(200);
+                                    res.json({"review_id": query_res_review.rows[0].id});
+                                }
+                            });
                         }
                     });
-                    console.log(`review inserted with text=${text} stars=${stars}`);
-                    // TODO - UPDATE review_id on reservation by querying by reservation_id
+                } else {
+                    res.status(404);
+                    res.json({"error": "No user found"});
                 }
             });
+        } else {
+            res.status(404);
+            res.json({"error": "No reservation found"});
         }
     });
 
 });
+
+app.put('/review', (req, res) => {
+    let review_id = req.body.review_id;
+    let stars = req.body.stars;
+    let text = req.body.text || "";
+    // Find the matching reservation
+    client.query(`SELECT * FROM "Reviews" WHERE "Reviews".id = ${review_id}`, (err, query_res) => {
+        if (err) {
+            res.status(500);
+            res.json({"error": err});
+        }
+        else {
+            if (query_res.rows[0]){
+                let prev_text = query_res.rows[0].text;
+                let prev_stars = query_res.rows[0].stars;
+                if (prev_stars == stars && prev_text == text){
+                    res.status(200);
+                    res.json({"review_id": review_id});
+                }
+                else {
+                    client.query(`UPDATE "Reviews" SET stars='${stars}', text='${text}' WHERE "Reviews".id = ${review_id}`, (err_review, query_res_review) => {
+                        if (err_review) {
+                            res.status(401);
+                            res.json({"error": err_review});
+                        }
+                        else{
+                            res.status(200);
+                            res.json({"review_id": review_id});
+                        }
+                    });
+                }
+            } else {
+                res.status(404);
+                res.json({"error": "No such review"});
+            }
+        }
+    });
+
+});
+
 
 app.get('/test', (req, res) => {
     console.log(req.body);
