@@ -285,7 +285,7 @@ app.post('/story', async (req, res) => {
             res.json({"error": `File too large. Maximum size is ${MAX_UPlOADED_FILE_SIZE}`});
         } else {
             let date =  Date.now().toString();
-            let imagePath = '/public/images/' + date + "_" + req.body.username + "." + req.files.photo.name.split('.')[1];
+            let imagePath = '/images/' + date + "_" + req.body.username + "." + req.files.photo.name.split('.')[1];
             client.query(`INSERT INTO "Stories" (image_path, username, created_at) VALUES ('${imagePath}', '${req.body.username}', to_timestamp('${date}'))`, (err, query_res) => {
                 if (err) {
                     res.status(500);
@@ -295,7 +295,7 @@ app.post('/story', async (req, res) => {
                     let story = req.files.photo;
             
                     //Move image to folder
-                    story.mv('.' + imagePath);
+                    story.mv('.' + '/public' + imagePath);
         
                     //send response
                     res.status(200);
