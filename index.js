@@ -1,7 +1,10 @@
-const { query } = require('express');
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const fileUpload = require('express-fileupload');
 const { Client } = require('pg');
 const app = express();
+
 
 const PORT = process.env.PORT || 5000;
 
@@ -13,12 +16,19 @@ const client = new Client({
 });
 client.connect();
 
-app.use(express.static('images'));
 app.use(express.json());
+app.use(fileUpload({
+    createParentPath: true
+}));
+app.use(express.static(__dirname + '/public'));
 
-app.get('/', (req, res) => {
-    res.send("Hello from server.");
-});
+// app.get('/', (req, res) => {
+//     res.send("Hello from server.");
+// });
+
+app.get('/stranka', function(req, res) {
+    res.sendFile(path.join(__dirname, '/public/upload.html'));
+  });
 
 app.post('/register', (req, res) => {
     let username = req.body.username;
@@ -263,6 +273,48 @@ app.put('/review', (req, res) => {
     });
 
 });
+
+const MAX_UPlOADED_FILE_SIZE = 10485760; // in bytes, 10MB
+app.post('/story', async (req, res) => {
+    try {
+        if(!req.files) {
+            res.status(413);
+            res.json({"error": "No file in body."})
+        } else if (req.files.photo.size > 10485760) {
+            res.status(413);
+            res.json({"error": `File too large. Maximum size is ${MAX_UPlOADED_FILE_SIZE}`});
+        } else {
+            let date =  Date.now().toString();
+            let imagePath = '/public/images/' + date + "_" + req.body.username + "." + req.files.photo.name.split('.')[1];
+            client.query(`INSERT INTO "Stories" (image_path, username, created_at) VALUES ('${imagePath}', '${req.body.username}', to_timestamp('${date}'))`, (err, query_res) => {
+                if (err) {
+                    res.status(500);
+                    res.send(err);
+                } else {
+                    console.log(`File ${imagePath} - uploaded`);
+                    let story = req.files.photo;
+            
+                    //Move image to folder
+                    story.mv('.' + imagePath);
+        
+                    //send response
+                    res.status(200);
+                    res.json({message: 'File uploaded.'});
+                }
+            });
+        }
+    } catch (err) {
+        res.status(500).send(err);
+    }
+});
+
+app.get('/story', (req, res) => {
+    client.query(`SELECT "Stories".image_path FROM "Stories"`, (err, query_res) => {
+        res.status(200);
+        res.json(query_res.rows);
+    })
+});
+
 
 
 app.get('/test', (req, res) => {

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<head>
+
+</head>
+
+<body>
+  <input type="file" id="image-file">
+  <button id="send-button">Post</button>
+  <script>
+    document.getElementById("send-button").onclick = () => {
+      let photo = document.getElementById("image-file").files[0];
+      let formData = new FormData();
+          
+      formData.append("photo", photo);
+      formData.append("username", 'valentino');
+      fetch('story', {method: "POST", body: formData});
+    }
+  </script>
+</body>
+
