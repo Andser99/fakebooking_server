@@ -172,17 +172,25 @@ app.get('/review/:id', (req, res) => {
 
 app.delete('/review/:id', (req, res) => {
     var review_id = parseInt(req.params.id);
-    client.query(`DELETE FROM "Review" WHERE "Review".id = ${review_id} RETURNING id`, (err, query_res) => {
-        if (err) {
-            res.status(404);
-            res.json({"error": err});
+    client.query(`UPDATE "Reservation" SET review_id = NULL WHERE review_id = ${review_id}`, (err_1, query_res_1) => {
+        if (err_1) {
+            res.status(500);
+            res.json({"error": err_1});
         }
-        else if (query_res.rows[0]){
-            res.status(200);
-            res.json({"review_id":query_res.rows[0].id});
-        } else {
-            res.status(404);
-            res.json({"error": "No review with such id found"});
+        else {
+            client.query(`DELETE FROM "Review" WHERE "Review".id = ${review_id} RETURNING id`, (err, query_res) => {
+                if (err) {
+                    res.status(500);
+                    res.json({"error": err});
+                }
+                else if (query_res.rows[0]){
+                    res.status(200);
+                    res.json({"review_id":query_res.rows[0].id});
+                } else {
+                    res.status(404);
+                    res.json({"error": "No review with such id found"});
+                }
+            });
         }
     });
 });
