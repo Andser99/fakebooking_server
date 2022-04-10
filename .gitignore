@@ -1,6 +1,5 @@
 local_keys
 node_modules
-public/images
 
 # Logs
 logs
