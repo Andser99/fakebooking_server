@@ -62,7 +62,7 @@ app.post('/register', (req, res) => {
             } 
             else {
                 res.status(200);
-                res.json({"id": query_res.rows[0].id});
+                res.json({"user_id": query_res.rows[0].id});
             }
         });
         console.log(`register request user=${query.username} password=${query.password}`);
