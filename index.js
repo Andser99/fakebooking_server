@@ -3,6 +3,7 @@ const path = require('path');
 const fileUpload = require('express-fileupload');
 const { Client } = require('pg');
 const app = express();
+const { ExpressPeerServer } = require('peer');
 
 
 const PORT = process.env.PORT || 5000;
@@ -20,6 +21,7 @@ app.use(fileUpload({
     createParentPath: true
 }));
 app.use(express.static(__dirname + '/public'));
+console.log(__dirname);
 
 app.get('/', (req, res) => {
     res.send("Hello from server.");
@@ -372,5 +374,11 @@ app.get('/test', (req, res) => {
     console.log(req.body);
     res.send("AAAAAAA");
 })
+var server = require('http').createServer(app);
 
-app.listen(PORT, () => console.log(`Listening on ${ PORT }`));
+const peerServer = ExpressPeerServer(server, {
+  path: '/peerjs'
+});
+
+app.use('/myapp', peerServer);
+const listener = server.listen(PORT, () => console.log(`Listening on ${ PORT }`));
