@@ -329,7 +329,7 @@ app.post('/story', async (req, res) => {
         } else {
             let date =  new Date().toISOString();
             let imagePath = '/images/' + Date.now().toString() + "_" + req.body.username + "." + req.files.photo.name.split('.')[1];
-            client.query(`INSERT INTO "Stories" (image_path, username, created_at) VALUES ('${imagePath}', '${req.body.username}', '${date}'`, (err, query_res) => {
+            client.query(`INSERT INTO "Stories" (image_path, username, created_at) VALUES ('${imagePath}', '${req.body.username}', '${date}')`, (err, query_res) => {
                 if (err) {
                     res.status(500);
                     res.send(err);
