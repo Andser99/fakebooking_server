@@ -353,14 +353,14 @@ app.post('/story', async (req, res) => {
 });
 
 app.get('/story', (req, res) => {
-    client.query(`SELECT "Stories".image_path FROM "Stories"`, (err, query_res) => {
+    client.query(`SELECT * FROM "Stories"`, (err, query_res) => {
         if (err){
             res.status(500);
             res.send(err);
         }
         else if (query_res.rows[0]){
             res.status(200);
-            res.json(query_res.rows);
+            res.json({"list": query_res.rows});
         } else {
             res.status(404);
             res.json({"error": "No images found"})
