@@ -123,11 +123,11 @@ app.post('/reservations', (req, res) => {
     }
 });
 
-app.get('/reservations', (req, res) => {
-    let user_id  = req.body.user_id ;
+app.get('/reservations/:id', (req, res) => {
+	var user_id = parseInt(req.params.id);
     client.query(`SELECT * FROM "Reservation" WHERE "Reservation".user_id = ${user_id}`, (err, query_res) => {
         if (err) {
-            res.status(404);
+            res.status(500);
             res.json({"error": err});
         }
         else {
